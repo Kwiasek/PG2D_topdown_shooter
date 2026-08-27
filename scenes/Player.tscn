@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bxhrs8d6dvqkh"]
+
+[ext_resource type="Script" uid="uid://bpwo5bsg2s3y7" path="res://scenes/player.gd" id="1_v6fml"]
+[ext_resource type="Texture2D" uid="uid://dwhrwiusdjsr7" path="res://assets/sprites/player/manBlue_hold.png" id="2_3li8b"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_kpjcp"]
+radius = 23.086792
+
+[node name="Player" type="CharacterBody2D" unique_id=1368864994]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_v6fml")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=893344305]
+texture = ExtResource("2_3li8b")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1825566808]
+shape = SubResource("CircleShape2D_kpjcp")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=66118619]
