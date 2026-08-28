@@ -14,6 +14,10 @@ config/name="odrabianie"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[global_group]
+
+player=""
+
 [layer_names]
 
 2d_physics/layer_1="World_Solid"

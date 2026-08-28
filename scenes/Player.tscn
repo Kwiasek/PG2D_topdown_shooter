@@ -6,7 +6,7 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_kpjcp"]
 radius = 23.086792
 
-[node name="Player" type="CharacterBody2D" unique_id=1368864994]
+[node name="Player" type="CharacterBody2D" unique_id=1368864994 groups=["player"]]
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_v6fml")
@@ -18,3 +18,4 @@ texture = ExtResource("2_3li8b")
 shape = SubResource("CircleShape2D_kpjcp")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=66118619]
+zoom = Vector2(0.8, 0.8)
