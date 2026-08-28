@@ -1,19 +1,28 @@
 extends CharacterBody2D
 class_name Enemy
 
+enum WeaponMode { MELEE, RANGED }
+
+@export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
+@export var melee_range: float = 35.0
+@export var melee_switch_threshold: float = 90.0
+@export var ranged_max_range: float = 400.0
+
+@export var melee_damage: float = 20.0
+@export var melee_cooldown: float = 0.8
+
+@export var ranged_cooldown: float = 1.2
+
 @export var speed: float = 160.0
 @export var ray_count: int = 16
 @export var look_ahead_distance: float = 80.0
-@export var attack_range: float = 35.0
-@export var damage: float = 15.0
-@export var attack_cooldown: float = 1.0
 
-@export var jump_speed: float = 240.0
 @export var jump_duration: float = 0.45
 @export var jump_trigger_distance: float = 65.0
 var is_jumping: bool = false
 var jump_cooldown_timer: float = 0.0
 
+var current_weapon: WeaponMode = WeaponMode.RANGED
 var player: Node2D = null
 var ray_directions: Array[Vector2] = []
 var chosen_dir: Vector2 = Vector2.ZERO
@@ -51,32 +60,42 @@ func _physics_process(delta: float) -> void:
 	
 	var dist_to_player = global_position.distance_to(player.global_position)
 	var dir_to_player = (player.global_position - global_position).normalized()
+	var has_los = check_line_of_sight()
 	
-	# Obrót w stronę wybranego kierunku ruchu lub gracza
-	if velocity.length() > 10.0:
+	update_weapon_choice(dist_to_player, has_los)
+	
+	# Obrót 
+	if current_weapon == WeaponMode.RANGED and has_los:
+		rotation = lerp_angle(rotation, dir_to_player.angle(), 12.0 * delta)
+	elif velocity.length() > 10.0:
 		rotation = lerp_angle(rotation, velocity.angle(), 10.0 * delta)
 	else:
 		rotation = lerp_angle(rotation, dir_to_player.angle(), 10.0 * delta)
 	
 	# Sprawdzenie możliwości przeskoczenia przeszkody
-	if jump_cooldown_timer <= 0.0 and dist_to_player > attack_range:
+	if jump_cooldown_timer <= 0.0 and dist_to_player > melee_range:
 		if should_jump_over_obstacle(dir_to_player):
 			perform_jump(dir_to_player)
 			return
 	
-	# Atak wręcz w zasięgu
-	if dist_to_player <= attack_range:
-		velocity = Vector2.ZERO
-		if attack_timer <= 0.0:
-			perform_melee_attack()
-			attack_timer = attack_cooldown
-		move_and_slide()
-		return
+	# Logika ataku dla wybranej broni
+	if current_weapon == WeaponMode.MELEE:
+		if dist_to_player <= melee_range:
+			velocity = Vector2.ZERO
+			if attack_timer <= 0.0:
+				perform_melee_attack()
+				attack_timer = melee_cooldown
+			move_and_slide()
+			return
+	elif current_weapon == WeaponMode.RANGED:
+		if has_los and dist_to_player <= ranged_max_range:
+			if attack_timer <= 0.0:
+				shoot_projectile(dir_to_player)
+				attack_timer = ranged_cooldown
 	
-	# Obliczenie optymalnego kierunku
+	
+	# Ruch
 	var target_direction = get_context_steering_direction(player.global_position)
-	
-	# 4. Ruch
 	velocity = velocity.move_toward(target_direction * speed, speed * 8.0 * delta)
 	move_and_slide()
 	
@@ -88,6 +107,47 @@ func _physics_process(delta: float) -> void:
 			stuck_timer = 0.0
 	else:
 		stuck_timer = max(0.0, stuck_timer - delta)
+
+func update_weapon_choice(dist: float, has_los: bool) -> void:
+	if dist <= melee_switch_threshold:
+		if current_weapon != WeaponMode.MELEE:
+			current_weapon = WeaponMode.MELEE
+			modulate = Color(1.0, 0.7, 0.7)
+			print("Przeciwnik przełącza się na broń białą")
+	else:
+		if current_weapon != WeaponMode.RANGED:
+			current_weapon = WeaponMode.RANGED
+			modulate = Color.WHITE
+			print("Przeciwnik przełącza się na broń dystansową")
+
+func check_line_of_sight() -> bool:
+	if not is_instance_valid(player):
+		return false
+		
+	var space_state = get_world_2d().direct_space_state
+	# Sprawdzamy czy nie ma ścian między graczem a przeciwnikiem
+	var mask = (1 << 0) | (1 << 1)
+	var query = PhysicsRayQueryParameters2D.create(
+		global_position,
+		player.global_position,
+		mask
+	)
+	query.exclude = [self]
+	var result = space_state.intersect_ray(query)
+	
+	return result.is_empty()
+	
+func shoot_projectile(direction: Vector2) -> void:
+	if not bullet_scene:
+		return
+	
+	var bullet = bullet_scene.instantiate() as Bullet
+	bullet.global_position = global_position + direction * 25.0
+	bullet.direction = direction
+	bullet.rotation = direction.angle()
+	bullet.shooter = self
+	
+	get_parent().add_child(bullet)
 
 func should_jump_over_obstacle(dir_to_player: Vector2) -> bool:
 	var space_state = get_world_2d().direct_space_state
@@ -201,4 +261,4 @@ func get_context_steering_direction(target_pos: Vector2) -> Vector2:
 
 func perform_melee_attack() -> void:
 	if player and player.has_method("take_damage"):
-		player.take_damage(damage)
+		player.take_damage(melee_damage)
