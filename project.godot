@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="odrabianie"
+run/main_scene="uid://ci0vrtousdhs3"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
